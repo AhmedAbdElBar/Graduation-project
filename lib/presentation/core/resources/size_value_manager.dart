@@ -7,6 +7,7 @@ class HeightValueManager {
 
 class WidthValueManager {
   static const double vW1_5 = 1.5;
+  static const double vW20 = 20;
   static const double vW250 = 250;
   static const double vW150 = 150;
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1057605422182",
+    "project_id": "color-safe-studio",
+    "storage_bucket": "color-safe-studio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1057605422182:android:7fa1c9dec353db9ca931a7",
+        "android_client_info": {
+          "package_name": "com.example.studio_color"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBThJ0XQPdox2yCx-RoycNiUqaDEqo33Ik"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
