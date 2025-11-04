@@ -1,7 +1,7 @@
 class StringsValueManager {
   //*login form & sign up form
-  static const String vTextFiledHintEmail = "Email or Username";
-  static const String vTextFiledHintEmailInFocus = "Enter  email or username";
+  static const String vTextFiledHintEmail = "Email ";
+  static const String vTextFiledHintEmailInFocus = "Enter  email ";
   static const String vTextFiledHintPassword = "Password";
   static const String vTextFiledHintPasswordInFocus = "Enter  password";
   static const String vLForgetPassword = "Forget Password?";

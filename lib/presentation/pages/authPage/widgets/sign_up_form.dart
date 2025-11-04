@@ -5,6 +5,8 @@ import '../../../core/resources/color_value_manager.dart';
 import '../../../core/resources/padding_margin_value_manager.dart';
 import '../../../core/resources/size_value_manager.dart';
 import '../../../core/resources/strings_value_manager.dart';
+import '../../home_bage.dart';
+import 'custom_text_field.dart';
 
 class SignUpForm extends StatefulWidget {
   const SignUpForm({super.key});
@@ -14,47 +16,19 @@ class SignUpForm extends StatefulWidget {
 }
 
 class _SignUpFormState extends State<SignUpForm> {
-  final FocusNode _emailFocus = FocusNode();
-  final FocusNode _passwordFocus = FocusNode();
-  final FocusNode _confirmFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmFocus = FocusNode();
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
 
-  final AuthServiceForRegister _authService =
-      AuthServiceForRegister(); // ✅ استخدمنا الكلاس المنفصل
+  final AuthServiceForRegister _authService = AuthServiceForRegister();
 
-  bool _isEmailFocused = false;
-  bool _isPasswordFocused = false;
-  bool _isConfirmFocused = false;
   bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _emailFocus.addListener(() {
-      setState(() => _isEmailFocused = _emailFocus.hasFocus);
-    });
-    _passwordFocus.addListener(() {
-      setState(() => _isPasswordFocused = _passwordFocus.hasFocus);
-    });
-    _confirmFocus.addListener(() {
-      setState(() => _isConfirmFocused = _confirmFocus.hasFocus);
-    });
-  }
-
-  @override
-  void dispose() {
-    _emailFocus.dispose();
-    _passwordFocus.dispose();
-    _confirmFocus.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmController.dispose();
-    super.dispose();
-  }
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   Future<void> _signUp() async {
     final email = _emailController.text.trim();
@@ -80,6 +54,7 @@ class _SignUpFormState extends State<SignUpForm> {
 
     if (message == null) {
       _showMessage("Account created successfully!");
+      Navigator.pushReplacementNamed(context, HomePage.routeName);
     } else {
       _showMessage(message, isError: true);
     }
@@ -111,79 +86,39 @@ class _SignUpFormState extends State<SignUpForm> {
     return Column(
       key: const ValueKey('SignUp'),
       children: [
-        // Email
-        TextField(
+        CustomTextField(
           controller: _emailController,
           focusNode: _emailFocus,
+          label: StringsValueManager.vTextFiledHintEmail,
+          labelInFocus: StringsValueManager.vTextFiledHintEmailInFocus,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
-          decoration: InputDecoration(
-            labelText: _isEmailFocused
-                ? StringsValueManager.vTextFiledHintEmailInFocus
-                : StringsValueManager.vTextFiledHintEmail,
-            labelStyle: const TextStyle(color: ColorValueManager.vBlack45Color),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(
-                color: ColorValueManager.vGrayColor,
-                width: WidthValueManager.vW1_5,
-              ),
-            ),
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: ColorValueManager.vBlack45Color),
-            ),
-          ),
         ),
         const SizedBox(height: HeightValueManager.vH20),
-
-        // Password
-        TextField(
+        CustomTextField(
           controller: _passwordController,
           focusNode: _passwordFocus,
-          obscureText: true,
+          label: StringsValueManager.vTextFiledHintPassword,
+          labelInFocus: StringsValueManager.vTextFiledHintPasswordInFocus,
+          keyboardType: TextInputType.text,
           textInputAction: TextInputAction.next,
-          decoration: InputDecoration(
-            labelText: _isPasswordFocused
-                ? StringsValueManager.vTextFiledHintPasswordInFocus
-                : StringsValueManager.vTextFiledHintPassword,
-            labelStyle: const TextStyle(color: ColorValueManager.vBlack45Color),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(
-                color: ColorValueManager.vGrayColor,
-                width: WidthValueManager.vW1_5,
-              ),
-            ),
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: ColorValueManager.vBlack45Color),
-            ),
-          ),
+          isPassword: true,
+          obscureText: _obscurePassword,
+          onObscureToggle: (v) => setState(() => _obscurePassword = v),
         ),
         const SizedBox(height: HeightValueManager.vH20),
-
-        // Confirm Password
-        TextField(
+        CustomTextField(
           controller: _confirmController,
           focusNode: _confirmFocus,
-          obscureText: true,
+          label: StringsValueManager.vTextFiledHintCPassword,
+          labelInFocus: StringsValueManager.vTextFiledHintCPasswordInFocus,
+          keyboardType: TextInputType.text,
           textInputAction: TextInputAction.done,
-          decoration: InputDecoration(
-            labelText: _isConfirmFocused
-                ? StringsValueManager.vTextFiledHintCPasswordInFocus
-                : StringsValueManager.vTextFiledHintCPassword,
-            labelStyle: const TextStyle(color: ColorValueManager.vBlack45Color),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(
-                color: ColorValueManager.vGrayColor,
-                width: WidthValueManager.vW1_5,
-              ),
-            ),
-            enabledBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: ColorValueManager.vBlack45Color),
-            ),
-          ),
+          isPassword: true,
+          obscureText: _obscureConfirm,
+          onObscureToggle: (v) => setState(() => _obscureConfirm = v),
         ),
         const SizedBox(height: HeightValueManager.vH28),
-
-        // Sign Up Button
         _isLoading
             ? Container(
                 padding: PaddingValueManager.eAll15,
