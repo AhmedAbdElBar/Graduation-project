@@ -5,7 +5,7 @@ import 'package:login_page/presentation/core/resources/padding_margin_value_mana
 import 'package:login_page/presentation/core/resources/size_value_manager.dart';
 import 'package:login_page/presentation/core/resources/strings_value_manager.dart';
 import 'package:login_page/presentation/pages/authPage/widgets/custom_text_field.dart';
-import 'package:login_page/presentation/pages/home_bage.dart';
+import 'package:login_page/presentation/pages/home/screen/home_screen.dart';
 import '../../../../data/firebase_auth/log_in_user.dart';
 import 'custom_dialog_for_reset_password.dart';
 
@@ -47,7 +47,7 @@ class _LoginFormState extends State<LoginForm> {
 
     if (message == null) {
       _showMessage("Login successful!");
-      Navigator.pushReplacementNamed(context, HomePage.routeName);
+      Navigator.pushReplacementNamed(context, HomeScreen.routeName);
     } else {
       _showMessage(message, isError: true);
     }

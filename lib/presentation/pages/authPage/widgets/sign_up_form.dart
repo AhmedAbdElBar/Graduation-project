@@ -5,7 +5,7 @@ import '../../../core/resources/color_value_manager.dart';
 import '../../../core/resources/padding_margin_value_manager.dart';
 import '../../../core/resources/size_value_manager.dart';
 import '../../../core/resources/strings_value_manager.dart';
-import '../../home_bage.dart';
+import '../../home/screen/home_screen.dart';
 import 'custom_text_field.dart';
 
 class SignUpForm extends StatefulWidget {
@@ -54,7 +54,7 @@ class _SignUpFormState extends State<SignUpForm> {
 
     if (message == null) {
       _showMessage("Account created successfully!");
-      Navigator.pushReplacementNamed(context, HomePage.routeName);
+      Navigator.pushReplacementNamed(context, HomeScreen.routeName);
     } else {
       _showMessage(message, isError: true);
     }
