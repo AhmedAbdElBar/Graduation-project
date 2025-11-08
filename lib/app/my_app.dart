@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:login_page/presentation/pages/authPage/widgets/auth_wrapper.dart';
 import '../presentation/core/resources/route_manager.dart';
-import '../presentation/pages/authPage/screens/auth_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -10,7 +10,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       routes: RouteManager.routes,
-      initialRoute: AuthScreen.routeName,
+      initialRoute: AuthWrapper.routeName,
     );
   }
 }

@@ -13,18 +13,41 @@ class CustomContainerForHomePage extends StatefulWidget {
       _CustomContainerForHomePageState();
 }
 
-class _CustomContainerForHomePageState
-    extends State<CustomContainerForHomePage> {
+class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
+    with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   List<Color> colors = [];
   bool isLoading = true;
+
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutBack,
+      ),
+    );
+
     fetchPalette();
   }
 
-  // 🧠 دالة جلب الألوان من Colormind API
   Future<void> fetchPalette() async {
     try {
       final response = await http.post(
@@ -41,6 +64,9 @@ class _CustomContainerForHomePageState
               .map((rgb) => Color.fromRGBO(rgb[0], rgb[1], rgb[2], 1))
               .toList();
         });
+
+        // ✅ بعد ما الألوان تتحمل، نشغل الأنيميشن
+        _controller.forward(from: 0);
       }
     } catch (e) {
       debugPrint('Error fetching palette: $e');
@@ -51,7 +77,8 @@ class _CustomContainerForHomePageState
 
   void showColorCodesDialog() {
     final List<String> colorCodes = colors.map((color) {
-      String hex = color.value.toRadixString(16).toUpperCase().padLeft(8, '0');
+      String hex =
+          color.toARGB32().toRadixString(16).toUpperCase().padLeft(8, '0');
       return '#${hex.substring(2)}';
     }).toList();
 
@@ -102,45 +129,78 @@ class _CustomContainerForHomePageState
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: colors.isEmpty ? null : showColorCodesDialog,
-      child: ClipRRect(
+    super.build(context);
+
+    // ✅ لو الكنترولر لسه ما اتعملش، نعرض اللودر بس
+    if (isLoading || !_controller.isAnimating && _controller.value == 0) {
+      return ClipRRect(
         borderRadius: BorderRadius.circular(15),
         child: Container(
-          height: 100,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            color: isLoading ? Colors.grey[200] : null,
-          ),
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : Row(
-                  children: List.generate(colors.length, (i) {
-                    return Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: colors[i],
-                          borderRadius: BorderRadius.only(
-                            topLeft: i == 0
-                                ? const Radius.circular(15)
-                                : Radius.zero,
-                            bottomLeft: i == 0
-                                ? const Radius.circular(15)
-                                : Radius.zero,
-                            topRight: i == colors.length - 1
-                                ? const Radius.circular(15)
-                                : Radius.zero,
-                            bottomRight: i == colors.length - 1
-                                ? const Radius.circular(15)
-                                : Radius.zero,
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
+          height: 150,
+          color: Colors.grey[200],
+          child: const Center(child: CircularProgressIndicator()),
         ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: colors.isEmpty ? null : showColorCodesDialog,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _fadeAnimation.value,
+            child: Transform.scale(
+              scale: _scaleAnimation.value,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Container(
+                  height: 150,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    color: isLoading ? Colors.grey[200] : null,
+                  ),
+                  child: isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : Row(
+                          children: List.generate(colors.length, (i) {
+                            return Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
+                                  color: colors[i],
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: i == 0
+                                        ? const Radius.circular(15)
+                                        : Radius.zero,
+                                    bottomLeft: i == 0
+                                        ? const Radius.circular(15)
+                                        : Radius.zero,
+                                    topRight: i == colors.length - 1
+                                        ? const Radius.circular(15)
+                                        : Radius.zero,
+                                    bottomRight: i == colors.length - 1
+                                        ? const Radius.circular(15)
+                                        : Radius.zero,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

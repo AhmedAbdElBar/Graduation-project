@@ -13,8 +13,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
     const HomePage(),
-    Expanded(child: Container(color: Colors.red)),
-    Expanded(child: Container(color: Colors.green)),
+    Container(color: Colors.red),
+    Container(color: Colors.green),
   ];
   void _onItemTapped(int index) {
     setState(() {
