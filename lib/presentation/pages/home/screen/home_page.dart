@@ -10,43 +10,67 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // ✅ هنضيف مفتاح للتحكم في الـ RefreshIndicator
   final GlobalKey<RefreshIndicatorState> _refreshKey =
       GlobalKey<RefreshIndicatorState>();
 
-  // علشان نعمل "إعادة بناء كاملة" للـ ListView لما نعمل refresh
-  int refreshId = 0;
+  int refreshId = 0; // ✅ المفتاح لإعادة بناء الـ ListView بالكامل
+  List<int> items = List.generate(10, (index) => index); // أول 10 عناصر
+  bool isLoadingMore = false;
 
   Future<void> _refresh() async {
-    // نعمل delay بسيط كأنه تحميل من الإنترنت
     await Future.delayed(const Duration(seconds: 1));
 
-    // ✅ نغير الـ refreshId عشان نعمل rebuild كامل للـ list
     setState(() {
-      refreshId++;
+      refreshId++; // ✅ نغير المفتاح لإعادة بناء ListView بالكامل
+      items = List.generate(10, (index) => index); // إعادة تحميل أول 10 عناصر
+    });
+  }
+
+  Future<void> _loadMore() async {
+    setState(() => isLoadingMore = true);
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    final nextItems = List.generate(10, (index) => items.length + index);
+
+    setState(() {
+      items.addAll(nextItems);
+      isLoadingMore = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home Page'),
-      ),
+      appBar: AppBar(title: const Text('Home Page')),
       body: Padding(
         padding: PaddingValueManager.eAll15,
         child: RefreshIndicator(
           key: _refreshKey,
           onRefresh: _refresh,
           child: ListView.separated(
-            key: ValueKey(refreshId), // ✅ مفتاح مختلف لكل refresh
-            itemCount: 10,
+            key: ValueKey(refreshId), // ✅ إعادة بناء كاملة عند كل refresh
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: items.length + 1, // +1 للزر Show More
             itemBuilder: (context, index) {
-              return CustomContainerForHomePage(index: index);
+              if (index == items.length) {
+                // زر Show More
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: isLoadingMore
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                            onPressed: _loadMore,
+                            child: const Text("Show More"),
+                          ),
+                  ),
+                );
+              }
+              // باقي العناصر العادية
+              return CustomContainerForHomePage(index: items[index]);
             },
-            separatorBuilder: (BuildContext context, int index) {
-              return const SizedBox(height: 10);
-            },
+            separatorBuilder: (context, index) => const SizedBox(height: 10),
           ),
         ),
       ),
