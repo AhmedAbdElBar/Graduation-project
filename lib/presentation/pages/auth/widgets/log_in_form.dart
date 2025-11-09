@@ -4,7 +4,7 @@ import 'package:login_page/presentation/core/resources/color_value_manager.dart'
 import 'package:login_page/presentation/core/resources/padding_margin_value_manager.dart';
 import 'package:login_page/presentation/core/resources/size_value_manager.dart';
 import 'package:login_page/presentation/core/resources/strings_value_manager.dart';
-import 'package:login_page/presentation/pages/authPage/widgets/custom_text_field.dart';
+import 'package:login_page/presentation/pages/auth/widgets/custom_text_field.dart';
 import 'package:login_page/presentation/pages/home/screen/home_screen.dart';
 import '../../../../data/firebase_auth/log_in_user.dart';
 import 'custom_dialog_for_reset_password.dart';

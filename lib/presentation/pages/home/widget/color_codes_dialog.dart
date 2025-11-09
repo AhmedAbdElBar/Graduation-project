@@ -28,7 +28,7 @@ class ColorCodesDialog extends StatelessWidget {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (int i = 0; i < colors.length - 1; i++)
+          for (int i = 0; i < colors.length ; i++)
             ListTile(
               leading: CircleAvatar(backgroundColor: colors[i]),
               title: Text(
