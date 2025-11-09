@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:login_page/presentation/pages/home/screen/home_page.dart';
+import 'package:login_page/presentation/pages/home/screen/pages/home_page/home_page.dart';
 
 class HomeScreen extends StatefulWidget {
   static const String routeName = '/homeScreen';

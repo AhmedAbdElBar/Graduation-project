@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+
+import 'color_codes_dialog.dart';
+import 'color_blind_dialog.dart';
 
 class CustomContainerForHomePage extends StatefulWidget {
   final int index;
@@ -18,6 +20,8 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
   List<Color> colors = [];
   bool isLoading = true;
 
+  bool favorite = false;
+
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -28,6 +32,7 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
   @override
   void initState() {
     super.initState();
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -39,10 +44,7 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
     );
 
     _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutBack,
-      ),
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
 
     fetchPalette();
@@ -65,8 +67,7 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
               .toList();
         });
 
-        // ✅ بعد ما الألوان تتحمل، نشغل الأنيميشن
-        _controller.forward(from: 0);
+        _controller.forward(from: 0); // شغل الأنيميشن
       }
     } catch (e) {
       debugPrint('Error fetching palette: $e');
@@ -77,56 +78,41 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
 
   void showColorCodesDialog() {
     final List<String> colorCodes = colors.map((color) {
-      String hex =
-          color.toARGB32().toRadixString(16).toUpperCase().padLeft(8, '0');
+      String hex = color.value.toRadixString(16).toUpperCase().padLeft(8, '0');
       return '#${hex.substring(2)}';
     }).toList();
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: Text(
-            '🎨 Palette ${widget.index + 1}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (int i = 0; i < colors.length; i++)
-                ListTile(
-                  leading: CircleAvatar(backgroundColor: colors[i]),
-                  title: Text(
-                    colorCodes[i],
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.copy, color: Colors.grey),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: colorCodes[i]));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${colorCodes[i]} copied!'),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
+        return ColorCodesDialog(
+          colors: colors,
+          colorCodes: colorCodes,
+          onFavoritePressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Added to favorites!'),
+                duration: Duration(seconds: 1),
+              ),
+            );
+          },
+          onColorBlindPressed: () {
+            Navigator.of(context).pop(); // اغلق الـ dialog الحالي
+            showDialog(
+              context: context,
+              builder: (context) {
+                return ColorBlindDialog(
+                  colors: colors,
+                );
+              },
+            );
+          },
         );
       },
     );
   }
+
+  // محاكاة أنواع عمى الألوان
 
   @override
   void dispose() {
@@ -138,70 +124,91 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
   Widget build(BuildContext context) {
     super.build(context);
 
-    // ✅ لو الكنترولر لسه ما اتعملش، نعرض اللودر بس
-    if (isLoading || !_controller.isAnimating && _controller.value == 0) {
+    if (isLoading || (!_controller.isAnimating && _controller.value == 0)) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(15),
         child: Container(
-          height: 150,
+          height: 200,
           color: Colors.grey[200],
           child: const Center(child: CircularProgressIndicator()),
         ),
       );
     }
 
-    return GestureDetector(
-      onTap: colors.isEmpty ? null : showColorCodesDialog,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Opacity(
-            opacity: _fadeAnimation.value,
-            child: Transform.scale(
-              scale: _scaleAnimation.value,
-              child: ClipRRect(
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _fadeAnimation.value,
+          child: Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              width: 160,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
-                child: Container(
-                  height: 150,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                    color: isLoading ? Colors.grey[200] : null,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
                   ),
-                  child: isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : Row(
-                          children: List.generate(colors.length, (i) {
-                            return Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
-                                  color: colors[i],
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: i == 0
-                                        ? const Radius.circular(15)
-                                        : Radius.zero,
-                                    bottomLeft: i == 0
-                                        ? const Radius.circular(15)
-                                        : Radius.zero,
-                                    topRight: i == colors.length - 1
-                                        ? const Radius.circular(15)
-                                        : Radius.zero,
-                                    bottomRight: i == colors.length - 1
-                                        ? const Radius.circular(15)
-                                        : Radius.zero,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // ✅ قسم الألوان
+                  GestureDetector(
+                    onTap: colors.isEmpty ? null : showColorCodesDialog,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(15),
+                      ),
+                      child: Column(
+                        children: List.generate(4, (i) {
+                          return Container(
+                            height: i == 0
+                                ? 60
+                                : i == 1
+                                    ? 40
+                                    : i == 2
+                                        ? 30
+                                        : 25,
+                            color: colors[i],
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+
+                  // ✅ قسم المعلومات تحت الألوان
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    IconButton(
+                        icon: Icon(
+                            favorite ? Icons.favorite : Icons.favorite_border,
+                            size: 20,
+                            color: favorite ? Colors.red : Colors.grey),
+                        onPressed: () {
+                          setState(() {
+                            favorite = !favorite;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(favorite
+                                  ? 'Added to favorites!'
+                                  : 'Removed from favorites!'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        }),
+                  ]),
+                ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
