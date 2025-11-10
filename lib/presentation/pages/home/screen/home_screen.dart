@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:login_page/presentation/pages/favorites_page/favorites_page.dart';
 import 'package:login_page/presentation/pages/home/screen/pages/home_page/home_page.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,7 +14,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   final List<Widget> _pages = [
     const HomePage(),
-    Container(color: Colors.red),
+    const FavoritesPage(),
     Container(color: Colors.green),
   ];
   void _onItemTapped(int index) {
@@ -35,8 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
               label: "Home",
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.search),
-              label: "Search",
+              icon: Icon(Icons.favorite),
+              label: "Favorites",
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person),

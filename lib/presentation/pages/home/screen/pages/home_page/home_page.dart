@@ -292,7 +292,7 @@ class _HomePageState extends State<HomePage> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 0.85,
+                    childAspectRatio: 0.8,
                   ),
                   itemBuilder: (context, index) {
                     if (index < filteredPalettes.length) {

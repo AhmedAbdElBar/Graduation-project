@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'color_codes_dialog.dart';
 import 'color_blind_dialog.dart';
 
@@ -20,7 +22,6 @@ class CustomContainerForHomePage extends StatefulWidget {
 class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
     with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   bool favorite = false;
-
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -43,6 +44,30 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
         CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward(from: 0);
+
+    _checkIfFavorite(); // ✅ تحقق من المفضلات عند البداية
+  }
+
+  Future<void> _checkIfFavorite() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final favRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('favorites');
+
+    final colorCodes = widget.colors.map((c) {
+      String hex = c.value.toRadixString(16).toUpperCase().padLeft(8, '0');
+      return '#${hex.substring(2)}';
+    }).toList();
+
+    final existing = await favRef.where('colors', isEqualTo: colorCodes).get();
+
+    if (!mounted) return;
+    setState(() {
+      favorite = existing.docs.isNotEmpty;
+    });
   }
 
   void showColorCodesDialog() {
@@ -110,21 +135,21 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
                   GestureDetector(
                     onTap: showColorCodesDialog,
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(15)),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(15)),
                       child: SizedBox(
                         child: Column(
                           children: List.generate(5, (i) {
                             return Container(
                               height: i == 0
-                                  ? 55
+                                  ? 60
                                   : i == 1
-                                      ? 35
+                                      ? 40
                                       : i == 2
-                                          ? 27
+                                          ? 30
                                           : i == 3
-                                              ? 20
-                                              : 20, // للون الأخير
+                                              ? 25
+                                              : 20,
                               color: widget.colors[i],
                             );
                           }),
@@ -132,28 +157,67 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
                       ),
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          favorite ? Icons.favorite : Icons.favorite_border,
-                          size: 20,
-                          color: favorite ? Colors.red : Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() => favorite = !favorite);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(favorite
-                                  ? 'Added to favorites!'
-                                  : 'Removed from favorites!'),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          );
-                        },
+                  Container(
+                    alignment: Alignment.center,
+                    height: 40,
+                    child: IconButton(
+                      icon: Icon(
+                        favorite ? Icons.favorite : Icons.favorite_border,
+                        size: 20,
+                        color: favorite ? Colors.red : Colors.grey,
                       ),
-                    ],
+                      onPressed: () async {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Please log in first!')),
+                          );
+                          return;
+                        }
+
+                        setState(() => favorite = !favorite);
+
+                        final favRef = FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user.uid)
+                            .collection('favorites');
+
+                        final colorCodes = widget.colors.map((c) {
+                          String hex = c.value
+                              .toRadixString(16)
+                              .toUpperCase()
+                              .padLeft(8, '0');
+                          return '#${hex.substring(2)}';
+                        }).toList();
+
+                        if (favorite) {
+                          // إضافة إلى المفضلات
+                          await favRef.add({
+                            'colors': colorCodes,
+                            'createdAt': FieldValue.serverTimestamp(),
+                          });
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Added to favorites!')),
+                          );
+                        } else {
+                          // حذف من المفضلات
+                          final existing = await favRef
+                              .where('colors', isEqualTo: colorCodes)
+                              .get();
+                          for (var doc in existing.docs) {
+                            await doc.reference.delete();
+                          }
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Removed from favorites!')),
+                          );
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
