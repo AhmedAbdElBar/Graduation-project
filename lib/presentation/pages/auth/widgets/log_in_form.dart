@@ -93,6 +93,7 @@ class _LoginFormState extends State<LoginForm> {
           labelInFocus: StringsValueManager.vTextFiledHintEmailInFocus,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
+          prefixIcon: Icons.email_outlined,
         ),
         const SizedBox(height: HeightValueManager.vH20),
 
@@ -106,6 +107,7 @@ class _LoginFormState extends State<LoginForm> {
           textInputAction: TextInputAction.done,
           isPassword: true,
           obscureText: _obscurePassword,
+          prefixIcon: Icons.lock_outline,
           onObscureToggle: (newValue) {
             setState(() {
               _obscurePassword = newValue;
@@ -127,7 +129,7 @@ class _LoginFormState extends State<LoginForm> {
               },
               child: const Text(
                 StringsValueManager.vLForgetPassword,
-                style: TextStyle(color: ColorValueManager.vBlack45Color),
+                style: TextStyle(color: ColorValueManager.vWhiteColor),
               ),
             ),
           ],
@@ -141,7 +143,7 @@ class _LoginFormState extends State<LoginForm> {
                 width: WidthValueManager.vW150,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: ColorValueManager.vGrayColor,
+                  color: ColorValueManager.vWhiteColor,
                   borderRadius: RadiusValueManager.vBR100,
                 ),
                 child: const SizedBox(
@@ -149,7 +151,7 @@ class _LoginFormState extends State<LoginForm> {
                   height: HeightValueManager.vH20,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    color: ColorValueManager.vWhiteColor,
+                    color: ColorValueManager.vBlackColor,
                   ),
                 ),
               )
@@ -160,13 +162,13 @@ class _LoginFormState extends State<LoginForm> {
                   width: WidthValueManager.vW150,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: ColorValueManager.vGrayColor,
+                    color: ColorValueManager.vWhiteColor,
                     borderRadius: RadiusValueManager.vBR100,
                   ),
                   child: const Text(
                     StringsValueManager.vLoginButton,
                     style: TextStyle(
-                      color: ColorValueManager.vWhiteColor,
+                      color: ColorValueManager.vBlackColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

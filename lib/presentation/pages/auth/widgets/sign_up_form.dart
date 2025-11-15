@@ -93,6 +93,7 @@ class _SignUpFormState extends State<SignUpForm> {
           labelInFocus: StringsValueManager.vTextFiledHintEmailInFocus,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
+          prefixIcon: Icons.email_outlined,
         ),
         const SizedBox(height: HeightValueManager.vH20),
         CustomTextField(
@@ -105,6 +106,7 @@ class _SignUpFormState extends State<SignUpForm> {
           isPassword: true,
           obscureText: _obscurePassword,
           onObscureToggle: (v) => setState(() => _obscurePassword = v),
+          prefixIcon: Icons.lock_outline,
         ),
         const SizedBox(height: HeightValueManager.vH20),
         CustomTextField(
@@ -117,6 +119,7 @@ class _SignUpFormState extends State<SignUpForm> {
           isPassword: true,
           obscureText: _obscureConfirm,
           onObscureToggle: (v) => setState(() => _obscureConfirm = v),
+          prefixIcon: Icons.lock_outline,
         ),
         const SizedBox(height: HeightValueManager.vH28),
         _isLoading
@@ -125,7 +128,7 @@ class _SignUpFormState extends State<SignUpForm> {
                 width: WidthValueManager.vW150,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: ColorValueManager.vGrayColor,
+                  color: ColorValueManager.vWhiteColor,
                   borderRadius: RadiusValueManager.vBR100,
                 ),
                 child: const SizedBox(
@@ -133,7 +136,7 @@ class _SignUpFormState extends State<SignUpForm> {
                   height: HeightValueManager.vH20,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    color: ColorValueManager.vWhiteColor,
+                    color: ColorValueManager.vBlack45Color,
                   ),
                 ),
               )
@@ -144,13 +147,13 @@ class _SignUpFormState extends State<SignUpForm> {
                   width: WidthValueManager.vW150,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: ColorValueManager.vGrayColor,
+                    color: ColorValueManager.vWhiteColor,
                     borderRadius: RadiusValueManager.vBR100,
                   ),
                   child: const Text(
                     StringsValueManager.vSignUpButton,
                     style: TextStyle(
-                      color: ColorValueManager.vWhiteColor,
+                      color: ColorValueManager.vBlackColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

@@ -9,6 +9,7 @@ class CustomTextField extends StatefulWidget {
   final String labelInFocus;
   final TextInputType keyboardType;
   final TextInputAction textInputAction;
+  final IconData prefixIcon;
   final bool isPassword;
   final bool? obscureText;
   final Function(bool)? onObscureToggle;
@@ -24,6 +25,7 @@ class CustomTextField extends StatefulWidget {
     this.isPassword = false,
     this.obscureText,
     this.onObscureToggle,
+    required this.prefixIcon,
   });
 
   @override
@@ -47,21 +49,27 @@ class _CustomTextFieldState extends State<CustomTextField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: widget.controller,
+      cursorColor: ColorValueManager.vWhiteColor,
       focusNode: widget.focusNode,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
+      style: const TextStyle(color: ColorValueManager.vWhiteColor),
       obscureText: widget.isPassword ? (widget.obscureText ?? true) : false,
       decoration: InputDecoration(
         labelText: _isFocused ? widget.labelInFocus : widget.label,
-        labelStyle: const TextStyle(color: ColorValueManager.vBlack45Color),
+        labelStyle: const TextStyle(color: ColorValueManager.vWhiteColor),
         focusedBorder: const UnderlineInputBorder(
           borderSide: BorderSide(
-            color: ColorValueManager.vGrayColor,
+            color: ColorValueManager.vWhiteColor,
             width: WidthValueManager.vW1_5,
           ),
         ),
         enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: ColorValueManager.vBlack45Color),
+          borderSide: BorderSide(color: ColorValueManager.vWhiteColor),
+        ),
+        prefixIcon: Icon(
+          widget.prefixIcon,
+          color: ColorValueManager.vWhiteColor,
         ),
         suffixIcon: widget.isPassword
             ? IconButton(
@@ -69,7 +77,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   (widget.obscureText ?? true)
                       ? Icons.visibility_off
                       : Icons.visibility,
-                  color: Colors.grey,
+                  color: ColorValueManager.vWhiteColor,
                 ),
                 onPressed: () {
                   if (widget.onObscureToggle != null) {

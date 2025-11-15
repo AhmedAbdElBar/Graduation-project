@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:login_page/presentation/pages/auth/widgets/auth_wrapper.dart';
+import 'package:login_page/presentation/pages/splashPage/splash_screen.dart';
 import '../presentation/core/resources/route_manager.dart';
 
 class MyApp extends StatelessWidget {
@@ -11,7 +12,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       routes: RouteManager.routes,
-      initialRoute: AuthWrapper.routeName,
+      initialRoute: SplashScreen.routeName,
     );
   }
 }
