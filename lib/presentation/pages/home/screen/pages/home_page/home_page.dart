@@ -27,6 +27,7 @@ class _HomePageState extends State<HomePage> {
 
   bool isLoading = true;
   bool isLoadingMore = false;
+  bool isSearching = false;
   int refreshId = 0;
   Timer? _debounce;
 
@@ -46,6 +47,29 @@ class _HomePageState extends State<HomePage> {
     _searchController.addListener(() {
       if (_debounce?.isActive ?? false) _debounce!.cancel();
       _debounce = Timer(const Duration(milliseconds: 600), _filterResults);
+    });
+  }
+
+  /// 🔹 Pull to refresh
+  Future<void> _refresh() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    // جلب بيانات جديدة من API
+    final palettes = await fetchPalettesFromApi(10);
+
+    // تحديث القوائم
+    myPalettes = palettes;
+    filteredPalettes = List.from(myPalettes);
+
+    // حفظها في SharedPreferences
+    await _savePalettesToCache();
+
+    // زيادة refreshId لتحديث GridView
+    setState(() {
+      isLoading = false;
+      refreshId++;
     });
   }
 
@@ -91,38 +115,75 @@ class _HomePageState extends State<HomePage> {
   /// 🔹 Filter results
   Future<void> _filterResults() async {
     String query = _searchController.text.toLowerCase();
-    if (query.isEmpty) return;
-
-    setState(() {
-      isLoading = true;
-      filteredPalettes = [];
-    });
-
-    List<List<Color>> matches = myPalettes.where((palette) {
-      return palette.any((color) {
-        String name = approxColorName(color);
-        return name.contains(query);
+    if (query.isEmpty) {
+      setState(() {
+        filteredPalettes = List.from(myPalettes);
+        isSearching = false;
       });
-    }).toList();
+      return;
+    }
 
     setState(() {
-      filteredPalettes = matches;
-      isLoading = false;
+      isSearching = true; // تفعيل ال loading
     });
-  }
 
-  /// 🔹 Pull to refresh
-  Future<void> _refresh() async {
-    await _fetchInitialPalettes();
-    refreshId++;
+    int desiredCount = 10;
+    int attempts = 0;
+    int maxAttempts = 50;
+    List<List<Color>> matches = [];
+
+    while (matches.length < desiredCount && attempts < maxAttempts) {
+      attempts++;
+
+      // جلب دفعة جديدة من API (مثلاً 5 في كل مرة)
+      final fetchedPalettes = await fetchPalettesFromApi(5);
+
+      // تصفية النتائج حسب اللون
+      List<List<Color>> newMatches = fetchedPalettes.where((palette) {
+        return palette.any((color) {
+          String name = approxColorName(color);
+          return name.contains(query);
+        });
+      }).toList();
+
+      matches.addAll(newMatches);
+    }
+
+    // تحديث البالتات
+    filteredPalettes = matches.take(desiredCount).toList();
+
+    // دمج النتائج الجديدة مع myPalettes وحفظها
+    myPalettes.addAll(filteredPalettes);
+    await _savePalettesToCache();
+
+    setState(() {
+      isSearching = false; // انتهاء البحث
+    });
   }
 
   /// 🔹 Load more (Pagination)
   Future<void> _loadMore() async {
     setState(() => isLoadingMore = true);
+
     final newPalettes = await fetchPalettesFromApi(10);
-    myPalettes.addAll(newPalettes);
-    filteredPalettes = List.from(myPalettes);
+
+    // أضفها لكل البالتات
+    allPalettes.addAll(newPalettes);
+
+    // إذا المستخدم عامل بحث
+    if (_searchController.text.isNotEmpty) {
+      String query = _searchController.text.toLowerCase();
+      filteredPalettes = allPalettes.where((palette) {
+        return palette.any((color) {
+          String name = approxColorName(color);
+          return name.contains(query);
+        });
+      }).toList();
+    } else {
+      // لو مفيش بحث
+      filteredPalettes = List.from(allPalettes);
+    }
+
     await _savePalettesToCache();
     setState(() => isLoadingMore = false);
   }
@@ -186,43 +247,57 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-        child: RefreshIndicator(
-          key: _refreshKey,
-          onRefresh: _refresh,
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : GridView.builder(
-                  key: ValueKey(refreshId),
-                  controller: _scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: filteredPalettes.length + 1,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.8,
-                  ),
-                  itemBuilder: (context, index) {
-                    if (index < filteredPalettes.length) {
-                      return CustomContainerForHomePage(
-                        index: index,
-                        colors: filteredPalettes[index].take(5).toList(),
-                      );
-                    } else {
-                      return Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Center(
-                          child: isLoadingMore
-                              ? const CircularProgressIndicator()
-                              : const SizedBox.shrink(),
-                        ),
-                      );
-                    }
-                  },
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            child: RefreshIndicator(
+              key: _refreshKey,
+              onRefresh: _refresh,
+              child: GridView.builder(
+                key: ValueKey(refreshId),
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: filteredPalettes.length + 1,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.8,
                 ),
-        ),
+                itemBuilder: (context, index) {
+                  if (index < filteredPalettes.length) {
+                    return CustomContainerForHomePage(
+                      index: index,
+                      colors: filteredPalettes[index].take(5).toList(),
+                    );
+                  } else {
+                    return Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Center(
+                        child: isLoadingMore
+                            ? const CircularProgressIndicator()
+                            : const SizedBox.shrink(),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
+          // Loading overlay أثناء البحث
+          if (isSearching)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(
+                minHeight: 4,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            ),
+        ],
       ),
     );
   }
