@@ -52,23 +52,26 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
 
-          // 🔥 خلفية متداخلة Gradient
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF8360c3),
-                Color(0xFF2ebf91),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+        // 🔥 خلفية متداخلة Gradient
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF8360c3),
+              Color(0xFF2ebf91),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+        ),
 
+        child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 60),
             child: SingleChildScrollView(

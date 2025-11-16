@@ -16,7 +16,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future future = Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, AuthWrapper.routeName);
     });
@@ -41,14 +41,21 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
           ),
           const Center(
-            child: Text(
-              "Logo",
-              style: TextStyle(
-                color: ColorValueManager.vWhiteColor,
-                fontFamily: "BBH",
-                fontWeight: FontWeightManager.vFW600,
-                fontSize: FontSizeValueManager.vFS35,
-              ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.palette_outlined,
+                    size: 100, color: ColorValueManager.vWhiteColor),
+                SizedBox(height: 20),
+                Text(
+                  "Studio Color",
+                  style: TextStyle(
+                    color: ColorValueManager.vWhiteColor,
+                    fontSize: FontSizeValueManager.vFS35,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

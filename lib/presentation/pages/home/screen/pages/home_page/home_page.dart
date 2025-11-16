@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:login_page/presentation/pages/home/services/search.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:login_page/presentation/core/resources/color_value_manager.dart';
-import 'package:login_page/presentation/core/resources/padding_margin_value_manager.dart';
-import 'package:login_page/presentation/pages/auth/screens/auth_screen.dart';
+import 'package:login_page/presentation/pages/auth/services/log_out.dart';
+import 'package:login_page/presentation/pages/home/services/fetching_data.dart';
 import 'package:login_page/presentation/pages/home/widget/custom_container_for_home_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -22,25 +22,23 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
 
   List<List<Color>> allPalettes = [];
+  static List<List<Color>> myPalettes = [];
   List<List<Color>> filteredPalettes = [];
 
   bool isLoading = true;
   bool isLoadingMore = false;
-  bool isSearching = false;
   int refreshId = 0;
-
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    fetchInitialPalettes();
+    _loadPalettesFromCacheOrApi();
 
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent &&
-          !isLoadingMore &&
-          !isSearching) {
+          !isLoadingMore) {
         _loadMore();
       }
     });
@@ -51,47 +49,46 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  /// 🔹 جلب أول مجموعة من الـ palettes
-  Future<void> fetchInitialPalettes() async {
+  /// 🔹 Load from SharedPreferences first, otherwise fetch from API
+  Future<void> _loadPalettesFromCacheOrApi() async {
     setState(() => isLoading = true);
-    final palettes = await fetchPalettesFromApi(10);
-    setState(() {
-      allPalettes = palettes;
-      filteredPalettes = List.from(allPalettes);
-      isLoading = false;
-    });
-  }
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString('my_palettes');
 
-  /// 🔹 جلب Palette من API colormind
-  Future<List<List<Color>>> fetchPalettesFromApi(int count) async {
-    List<List<Color>> fetchedPalettes = [];
-
-    for (int i = 0; i < count; i++) {
-      try {
-        final response = await http.post(
-          Uri.parse('http://colormind.io/api/'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'model': 'default'}),
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          final List result = data['result'];
-          fetchedPalettes.add(
-            result
-                .map((rgb) => Color.fromRGBO(rgb[0], rgb[1], rgb[2], 1))
-                .toList()
-                .cast<Color>(),
-          );
-        }
-      } catch (e) {
-        debugPrint('Error fetching palette: $e');
-      }
+    if (cached != null) {
+      // تحويل JSON لـ List<Color>
+      List<dynamic> decoded = jsonDecode(cached);
+      myPalettes = decoded.map<List<Color>>((palette) {
+        return (palette as List)
+            .map<Color>((colorValue) => Color(colorValue))
+            .toList();
+      }).toList();
+      filteredPalettes = List.from(myPalettes);
+      setState(() => isLoading = false);
+    } else {
+      await _fetchInitialPalettes();
     }
-
-    return fetchedPalettes;
   }
 
+  /// 🔹 Fetch from API
+  Future<void> _fetchInitialPalettes() async {
+    final palettes = await fetchPalettesFromApi(10);
+    myPalettes = palettes;
+    filteredPalettes = List.from(myPalettes);
+    await _savePalettesToCache();
+    setState(() => isLoading = false);
+  }
+
+  /// 🔹 Save to SharedPreferences
+  Future<void> _savePalettesToCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<List<int>> toSave = myPalettes
+        .map((palette) => palette.map((c) => c.value).toList())
+        .toList();
+    await prefs.setString('my_palettes', jsonEncode(toSave));
+  }
+
+  /// 🔹 Filter results
   Future<void> _filterResults() async {
     String query = _searchController.text.toLowerCase();
     if (query.isEmpty) return;
@@ -101,116 +98,33 @@ class _HomePageState extends State<HomePage> {
       filteredPalettes = [];
     });
 
-    int desiredCount = 10; // عدد النتائج المطلوب عرضها
-    int attempts = 0; // لمنع اللانهاية
-    int maxAttempts = 50;
-
-    List<List<Color>> matches = [];
-
-    while (matches.length < desiredCount && attempts < maxAttempts) {
-      attempts++;
-
-      // جلب دفعة جديدة من palettes (مثلاً 5 لكل مرة)
-      final fetchedPalettes = await fetchPalettesFromApi(5);
-
-      // تصفية النتائج
-      List<List<Color>> newMatches = fetchedPalettes.where((palette) {
-        return palette.any((color) {
-          String name = _approxColorName(color);
-          return name.contains(query);
-        });
-      }).toList();
-
-      matches.addAll(newMatches);
-    }
+    List<List<Color>> matches = myPalettes.where((palette) {
+      return palette.any((color) {
+        String name = approxColorName(color);
+        return name.contains(query);
+      });
+    }).toList();
 
     setState(() {
-      filteredPalettes = matches.take(desiredCount).toList();
+      filteredPalettes = matches;
       isLoading = false;
     });
   }
 
-  /// 🧠 تحويل اللون إلى اسم تقريبي (يغطي معظم الألوان الشائعة)
-  String _approxColorName(Color color) {
-    int r = color.red;
-    int g = color.green;
-    int b = color.blue;
-
-    // 🔴 الأحمر
-    if (r > 180 && g < 80 && b < 80) return 'red';
-
-    // 🟠 البرتقالي
-    if (r > 200 && g > 100 && g < 180 && b < 80) return 'orange';
-
-    // 🟡 الأصفر
-    if (r > 200 && g > 200 && b < 100) return 'yellow';
-
-    // 🟢 الأخضر
-    if (g > 150 && r < 120 && b < 120) return 'green';
-
-    // 🟢 فاتح (ليموني)
-    if (r > 170 && g > 220 && b < 120) return 'lime';
-
-    // 🔵 الأزرق
-    if (b > 160 && r < 100 && g < 140) return 'blue';
-
-    // 🩵 السماوي (أزرق فاتح)
-    if (b > 180 && g > 180 && r < 120) return 'cyan';
-
-    // 🟣 البنفسجي
-    if (r > 150 && b > 150 && g < 100) return 'purple';
-
-    // 💜 الموف
-    if (r > 180 && b > 180 && g < 150) return 'violet';
-
-    // 💗 الوردي
-    if (r > 220 && g < 180 && b > 200) return 'pink';
-
-    // 🟤 البني
-    if (r > 100 && g > 60 && b < 40) return 'brown';
-
-    // ⚫ الأسود
-    if (r < 50 && g < 50 && b < 50) return 'black';
-
-    // ⚪ الأبيض
-    if (r > 230 && g > 230 && b > 230) return 'white';
-
-    // ⚙️ الرمادي
-    if ((r - g).abs() < 20 && (g - b).abs() < 20) {
-      if (r > 180) return 'light gray';
-      if (r > 100) return 'gray';
-      return 'dark gray';
-    }
-
-    // 🎨 fallback
-    return 'other';
-  }
-
-  /// 🔹 سحب لتحديث
+  /// 🔹 Pull to refresh
   Future<void> _refresh() async {
-    await fetchInitialPalettes();
+    await _fetchInitialPalettes();
     refreshId++;
   }
 
-  /// 🔹 تحميل المزيد (Pagination)
+  /// 🔹 Load more (Pagination)
   Future<void> _loadMore() async {
     setState(() => isLoadingMore = true);
-    final newPalettes = await fetchPalettesFromApi(10); // ✅ بدل 5 → 10
-
-    setState(() {
-      allPalettes.addAll(newPalettes);
-      filteredPalettes = List.from(allPalettes);
-      isLoadingMore = false;
-    });
-  }
-
-  Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const AuthScreen()),
-      (route) => false,
-    );
+    final newPalettes = await fetchPalettesFromApi(10);
+    myPalettes.addAll(newPalettes);
+    filteredPalettes = List.from(myPalettes);
+    await _savePalettesToCache();
+    setState(() => isLoadingMore = false);
   }
 
   @override
@@ -229,7 +143,7 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         title: Row(
           children: [
-            const Icon(Icons.palette_outlined),
+            Icon(Icons.palette_outlined, color: Colors.grey.shade800),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
@@ -251,24 +165,20 @@ class _HomePageState extends State<HomePage> {
               onPressed: () async {
                 bool? confirm = await showDialog(
                   context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text('Confirm Logout'),
-                      content: const Text('Are you sure you want to log out?'),
-                      actions: [
-                        TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('No')),
-                        TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Yes')),
-                      ],
-                    );
-                  },
+                  builder: (context) => AlertDialog(
+                    title: const Text('Confirm Logout'),
+                    content: const Text('Are you sure you want to log out?'),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('No')),
+                      TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text('Yes')),
+                    ],
+                  ),
                 );
-                if (confirm == true) {
-                  await _logout();
-                }
+                if (confirm == true) await logout(context);
               },
               icon: const Icon(Icons.logout),
               tooltip: 'Log out',
@@ -277,7 +187,7 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       body: Padding(
-        padding: PaddingValueManager.eAll15,
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
         child: RefreshIndicator(
           key: _refreshKey,
           onRefresh: _refresh,

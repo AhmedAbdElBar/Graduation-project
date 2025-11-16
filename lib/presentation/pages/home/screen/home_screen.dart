@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:login_page/presentation/pages/export/screens/export_page.dart';
 import 'package:login_page/presentation/pages/favorites_page/favorites_page.dart';
@@ -24,27 +26,69 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Widget _navItem(IconData icon, int index) {
+    final bool isSelected = _currentIndex == index;
+
+    return GestureDetector(
+      onTap: () => _onItemTapped(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color:
+              // ignore: deprecated_member_use
+              isSelected ? Colors.white.withOpacity(0.3) : Colors.transparent,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Icon(
+          icon,
+          size: 28,
+          color: isSelected
+              ? switch (_currentIndex) {
+                  0 => Colors.lightBlue,
+                  1 => Colors.yellow,
+                  2 => Colors.red,
+                  _ => Colors.white,
+                }
+              : Colors.white,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: _pages[_currentIndex],
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: _onItemTapped,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "Home",
+      extendBody: true,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
+      body: _pages[_currentIndex],
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _navItem(Icons.home, 0),
+                  _navItem(Icons.add_box, 1),
+                  _navItem(Icons.favorite, 2),
+                ],
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: "Profile",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite),
-              label: "Favorites",
-            ),
-          ],
-        ));
+          ),
+        ),
+      ),
+    );
   }
 }

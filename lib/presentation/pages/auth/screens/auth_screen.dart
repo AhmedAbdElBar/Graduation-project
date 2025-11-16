@@ -58,7 +58,7 @@ class _AuthScreenState extends State<AuthScreen>
       body: Stack(
         children: [
           // الخلفية
-          Container(
+          SizedBox(
             width: double.infinity,
             height: double.infinity,
             child: Image.asset(
