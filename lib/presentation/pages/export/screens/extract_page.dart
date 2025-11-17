@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/services.dart'; // ← مهم للـ Clipboard
 
 class ExtractColorsPage extends StatefulWidget {
   const ExtractColorsPage({super.key});
@@ -14,6 +15,10 @@ class ExtractColorsPage extends StatefulWidget {
 class _ExtractColorsPageState extends State<ExtractColorsPage> {
   File? imageFile;
   List<Color> extractedColors = [];
+  bool isLoading = false;
+
+  // ⚡ عدّل هنا: IP الكمبيوتر المحلي
+  final String apiUrl = "http://192.168.1.10:5000/colors";
 
   Future pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -22,6 +27,7 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
     if (picked != null) {
       setState(() {
         imageFile = File(picked.path);
+        extractedColors.clear();
       });
 
       extractColors(picked.path);
@@ -29,22 +35,42 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
   }
 
   Future extractColors(String path) async {
-    final bytes = await File(path).readAsBytes();
-    final base64Image = base64Encode(bytes);
+    setState(() {
+      isLoading = true;
+    });
 
-    final response = await http.post(
-      Uri.parse("http://YOUR_API_URL/colors"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"image": base64Image}),
-    );
+    try {
+      final bytes = await File(path).readAsBytes();
+      final base64Image = base64Encode(bytes);
 
-    if (response.statusCode == 200) {
-      final List colors = jsonDecode(response.body)["colors"];
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"image": base64Image}),
+      );
 
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List colors = data["colors"] ?? [];
+
+        setState(() {
+          extractedColors = colors
+              .map((hex) => Color(int.parse("0xFF${hex.substring(1)}")))
+              .toList();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              "Server error: ${response.statusCode} ${response.reasonPhrase}"),
+        ));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Error: $e"),
+      ));
+    } finally {
       setState(() {
-        extractedColors = colors
-            .map((hex) => Color(int.parse("0xFF${hex.substring(1)}")))
-            .toList();
+        isLoading = false;
       });
     }
   }
@@ -58,8 +84,6 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-
-        // 🔥 خلفية متداخلة Gradient
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -70,18 +94,13 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
             end: Alignment.bottomRight,
           ),
         ),
-
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 60),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 60),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+            child: SafeArea(
               child: Column(
                 children: [
-                  // =============================
-                  //      TITLES
-                  // =============================
-
                   const Text(
                     "Choose color from any image",
                     style: TextStyle(
@@ -91,9 +110,7 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 10),
-
                   const Text(
                     "Upload your photo to extract colors from HEX, RGB and more",
                     style: TextStyle(
@@ -102,12 +119,11 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-
                   const SizedBox(height: 40),
 
-                  // =============================
+                  // ==============================
                   //      UPLOAD BUTTON
-                  // =============================
+                  // ==============================
                   Center(
                     child: GestureDetector(
                       onTap: pickImage,
@@ -141,13 +157,11 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 30),
 
-                  // =============================
+                  // ==============================
                   //      IMAGE CONTAINER
-                  // =============================
-
+                  // ==============================
                   if (imageFile != null)
                     Stack(
                       children: [
@@ -168,8 +182,6 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                             ),
                           ),
                         ),
-
-                        // زرار X لحذف الصورة
                         Positioned(
                           right: 10,
                           top: 10,
@@ -199,28 +211,84 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
 
                   const SizedBox(height: 30),
 
-                  // =============================
-                  //      EXTRACTED COLORS
-                  // =============================
+                  // ==============================
+                  //      PROGRESS INDICATOR
+                  // ==============================
+                  if (isLoading)
+                    const CircularProgressIndicator(
+                      color: Colors.white,
+                    ),
 
+                  const SizedBox(height: 20),
+
+                  // ==============================
+                  //      EXTRACTED COLORS
+                  // ==============================
                   if (extractedColors.isNotEmpty)
                     Wrap(
                       spacing: 10,
                       runSpacing: 10,
-                      children: extractedColors
-                          .map(
-                            (c) => Container(
-                              width: 55,
-                              height: 55,
-                              decoration: BoxDecoration(
-                                color: c,
-                                borderRadius: BorderRadius.circular(12),
-                                border:
-                                    Border.all(color: Colors.white, width: 2),
+                      children: extractedColors.map((color) {
+                        String hexCode =
+                            '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+
+                        // حساب لون النص بناءً على سطوع اللون
+                        Color textColor = (0.299 * color.red +
+                                    0.587 * color.green +
+                                    0.114 * color.blue) >
+                                186
+                            ? Colors.black
+                            : Colors.white;
+
+                        return Container(
+                          width: (MediaQuery.of(context).size.width - 60) / 2,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
                               ),
-                            ),
-                          )
-                          .toList(),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  hexCode,
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  Clipboard.setData(
+                                      ClipboardData(text: hexCode));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text("Copied $hexCode to clipboard"),
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                                child: Icon(
+                                  Icons.copy,
+                                  color: textColor,
+                                  size: 20,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ),
                 ],
               ),

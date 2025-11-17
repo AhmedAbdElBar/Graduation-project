@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:login_page/presentation/pages/export/screens/export_page.dart';
+import 'package:login_page/presentation/pages/export/screens/extract_page.dart';
 import 'package:login_page/presentation/pages/favorites_page/favorites_page.dart';
 import 'package:login_page/presentation/pages/home/screen/pages/home_page/home_page.dart';
 
