@@ -197,7 +197,7 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
                             'colors': colorCodes,
                             'createdAt': FieldValue.serverTimestamp(),
                           });
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Added to favorites!')),
@@ -210,7 +210,7 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
                           for (var doc in existing.docs) {
                             await doc.reference.delete();
                           }
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Removed from favorites!')),

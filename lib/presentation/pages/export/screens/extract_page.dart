@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter/services.dart'; // ← مهم للـ Clipboard
+import 'package:flutter/services.dart';
+import 'package:login_page/presentation/pages/home/widget/custom_container_for_home_page.dart'; // ← مهم للـ Clipboard
 
 class ExtractColorsPage extends StatefulWidget {
   const ExtractColorsPage({super.key});
@@ -15,9 +16,10 @@ class ExtractColorsPage extends StatefulWidget {
 class _ExtractColorsPageState extends State<ExtractColorsPage> {
   File? imageFile;
   List<Color> extractedColors = [];
+  List<Color> paletteColors = [];
   bool isLoading = false;
 
-  // ⚡ عدّل هنا: IP الكمبيوتر المحلي
+  //  IP الكمبيوتر المحلي
   final String apiUrl = "http://192.168.1.10:5000/colors";
 
   Future pickImage() async {
@@ -40,18 +42,25 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
     });
 
     try {
-      final bytes = await File(path).readAsBytes();
-      final base64Image = base64Encode(bytes);
+      var request = http.MultipartRequest("POST", Uri.parse(apiUrl));
 
-      final response = await http.post(
-        Uri.parse(apiUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"image": base64Image}),
+      // إضافة الملف داخل الـ multipart request
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          "file", // ← لازم يكون نفس اسم البارامتر في Flask
+          path,
+        ),
       );
+
+      // ابعت الريكوست
+      var streamedResponse = await request.send();
+
+      // حوّل الـ stream إلى Response عادية
+      var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List colors = data["colors"] ?? [];
+        final List colors = data["top_colors"] ?? [];
 
         setState(() {
           extractedColors = colors
@@ -59,15 +68,21 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
               .toList();
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              "Server error: ${response.statusCode} ${response.reasonPhrase}"),
-        ));
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                "Server error: ${response.statusCode} ${response.reasonPhrase}"),
+          ),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Error: $e"),
-      ));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error: $e"),
+        ),
+      );
     } finally {
       setState(() {
         isLoading = false;
@@ -190,6 +205,7 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                               setState(() {
                                 imageFile = null;
                                 extractedColors.clear();
+                                paletteColors.clear();
                               });
                             },
                             child: Container(
@@ -225,70 +241,119 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                   //      EXTRACTED COLORS
                   // ==============================
                   if (extractedColors.isNotEmpty)
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: extractedColors.map((color) {
-                        String hexCode =
-                            '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+                    Column(
+                      children: [
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: extractedColors.map((color) {
+                            String hexCode =
+                                '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
 
-                        // حساب لون النص بناءً على سطوع اللون
-                        Color textColor = (0.299 * color.red +
-                                    0.587 * color.green +
-                                    0.114 * color.blue) >
-                                186
-                            ? Colors.black
-                            : Colors.white;
+                            // حساب لون النص بناءً على سطوع اللون
+                            Color textColor = (0.299 * color.red +
+                                        0.587 * color.green +
+                                        0.114 * color.blue) >
+                                    186
+                                ? Colors.black
+                                : Colors.white;
 
-                        return Container(
-                          width: (MediaQuery.of(context).size.width - 60) / 2,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 5,
-                                offset: const Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  hexCode,
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                            return Container(
+                              width:
+                                  (MediaQuery.of(context).size.width - 60) / 2,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 3),
                                   ),
-                                ),
+                                ],
                               ),
-                              GestureDetector(
-                                onTap: () {
-                                  Clipboard.setData(
-                                      ClipboardData(text: hexCode));
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text("Copied $hexCode to clipboard"),
-                                      duration: const Duration(seconds: 1),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      hexCode,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
                                     ),
-                                  );
-                                },
-                                child: Icon(
-                                  Icons.copy,
-                                  color: textColor,
-                                  size: 20,
-                                ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      Clipboard.setData(
+                                          ClipboardData(text: hexCode));
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              "Copied $hexCode to clipboard"),
+                                          duration: const Duration(seconds: 1),
+                                        ),
+                                      );
+                                    },
+                                    child: Icon(
+                                      Icons.copy,
+                                      color: textColor,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 30),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              paletteColors = List.from(extractedColors);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 40, vertical: 14),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF00c6ff),
+                                  Color(0xFF0072ff),
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ],
+                            ),
+                            child: const Text(
+                              "Create Palette",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                        const SizedBox(height: 20),
+                        if (paletteColors.isNotEmpty)
+                          CustomContainerForHomePage(
+                            index: 0,
+                            colors: paletteColors,
+                          ),
+                      ],
                     ),
                 ],
               ),
