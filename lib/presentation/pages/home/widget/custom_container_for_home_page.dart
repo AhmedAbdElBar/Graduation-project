@@ -119,7 +119,6 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
             child: Container(
               width: 160,
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
@@ -158,8 +157,17 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
                     ),
                   ),
                   Container(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(15)),
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey.shade300),
+                        left: BorderSide(color: Colors.grey.shade300),
+                        right: BorderSide(color: Colors.grey.shade300),
+                      ),
+                    ),
                     alignment: Alignment.center,
-                    height: 40,
+                    height: 45,
                     child: IconButton(
                       icon: Icon(
                         favorite ? Icons.favorite : Icons.favorite_border,

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:login_page/presentation/pages/home/services/search.dart';
+import 'package:login_page/presentation/pages/home/widget/skeleton_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:login_page/presentation/core/resources/color_value_manager.dart';
 import 'package:login_page/presentation/pages/auth/services/log_out.dart';
@@ -50,26 +51,37 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  /// 🔹 Pull to refresh
   Future<void> _refresh() async {
     setState(() {
       isLoading = true;
     });
+
+    // جلب بيانات جديدة من API
     final palettes = await fetchPalettesFromApi(10);
+
+    // تحديث القوائم
     myPalettes = palettes;
     filteredPalettes = List.from(myPalettes);
+
+    // حفظها في SharedPreferences
     await _savePalettesToCache();
+
+    // زيادة refreshId لتحديث GridView
     setState(() {
       isLoading = false;
       refreshId++;
     });
   }
 
+  /// 🔹 Load from SharedPreferences first, otherwise fetch from API
   Future<void> _loadPalettesFromCacheOrApi() async {
     setState(() => isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString('my_palettes');
 
     if (cached != null) {
+      // تحويل JSON لـ List<Color>
       List<dynamic> decoded = jsonDecode(cached);
       myPalettes = decoded.map<List<Color>>((palette) {
         return (palette as List)
@@ -83,6 +95,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /// 🔹 Fetch from API
   Future<void> _fetchInitialPalettes() async {
     final palettes = await fetchPalettesFromApi(10);
     myPalettes = palettes;
@@ -91,6 +104,7 @@ class _HomePageState extends State<HomePage> {
     setState(() => isLoading = false);
   }
 
+  /// 🔹 Save to SharedPreferences
   Future<void> _savePalettesToCache() async {
     final prefs = await SharedPreferences.getInstance();
     List<List<int>> toSave = myPalettes
@@ -99,6 +113,7 @@ class _HomePageState extends State<HomePage> {
     await prefs.setString('my_palettes', jsonEncode(toSave));
   }
 
+  /// 🔹 Filter results
   Future<void> _filterResults() async {
     String query = _searchController.text.toLowerCase();
     if (query.isEmpty) {
@@ -110,7 +125,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     setState(() {
-      isSearching = true;
+      isSearching = true; // تفعيل ال loading
     });
 
     int desiredCount = 10;
@@ -120,30 +135,43 @@ class _HomePageState extends State<HomePage> {
 
     while (matches.length < desiredCount && attempts < maxAttempts) {
       attempts++;
+
+      // جلب دفعة جديدة من API (مثلاً 5 في كل مرة)
       final fetchedPalettes = await fetchPalettesFromApi(5);
+
+      // تصفية النتائج حسب اللون
       List<List<Color>> newMatches = fetchedPalettes.where((palette) {
         return palette.any((color) {
           String name = approxColorName(color);
           return name.contains(query);
         });
       }).toList();
+
       matches.addAll(newMatches);
     }
 
+    // تحديث البالتات
     filteredPalettes = matches.take(desiredCount).toList();
+
+    // دمج النتائج الجديدة مع myPalettes وحفظها
     myPalettes.addAll(filteredPalettes);
     await _savePalettesToCache();
 
     setState(() {
-      isSearching = false;
+      isSearching = false; // انتهاء البحث
     });
   }
 
+  /// 🔹 Load more (Pagination)
   Future<void> _loadMore() async {
     setState(() => isLoadingMore = true);
+
     final newPalettes = await fetchPalettesFromApi(10);
+
+    // أضفها لكل البالتات
     allPalettes.addAll(newPalettes);
 
+    // إذا المستخدم عامل بحث
     if (_searchController.text.isNotEmpty) {
       String query = _searchController.text.toLowerCase();
       filteredPalettes = allPalettes.where((palette) {
@@ -153,6 +181,7 @@ class _HomePageState extends State<HomePage> {
         });
       }).toList();
     } else {
+      // لو مفيش بحث
       filteredPalettes = List.from(allPalettes);
     }
 
@@ -165,10 +194,6 @@ class _HomePageState extends State<HomePage> {
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  Widget _buildSkeletonItem() {
-    return _AnimatedSkeleton();
   }
 
   @override
@@ -214,7 +239,7 @@ class _HomePageState extends State<HomePage> {
                           child: const Text('Yes')),
                     ],
                   ),
-                );if(!context.mounted) return;
+                );
                 if (confirm == true) await logout(context);
               },
               icon: const Icon(Icons.logout),
@@ -223,90 +248,62 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-        child: RefreshIndicator(
-          key: _refreshKey,
-          onRefresh: _refresh,
-          child: GridView.builder(
-            key: ValueKey(refreshId),
-            controller: _scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: isLoading
-                ? 8
-                : filteredPalettes.length + (isLoadingMore ? 2 : 0),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 0.8,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            child: RefreshIndicator(
+              key: _refreshKey,
+              onRefresh: _refresh,
+              child: GridView.builder(
+                key: ValueKey(refreshId),
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: isLoading
+                    ? 6
+                    : filteredPalettes.length + 1, // عدد skeletons
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.8,
+                ),
+                itemBuilder: (context, index) {
+                  if (isLoading) {
+                    return const PaletteSkeleton(); // عرض skeleton
+                  } else if (index < filteredPalettes.length) {
+                    return CustomContainerForHomePage(
+                      index: index,
+                      colors: filteredPalettes[index].take(5).toList(),
+                    );
+                  } else {
+                    return Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Center(
+                        child: isLoadingMore
+                            ? const CircularProgressIndicator()
+                            : const SizedBox.shrink(),
+                      ),
+                    );
+                  }
+                },
+              ),
             ),
-            itemBuilder: (context, index) {
-              if (isLoading) return _buildSkeletonItem();
-
-              if (index < filteredPalettes.length) {
-                return CustomContainerForHomePage(
-                  index: index,
-                  colors: filteredPalettes[index].take(5).toList(),
-                );
-              } else {
-                return _buildSkeletonItem();
-              }
-            },
           ),
-        ),
+          // Loading overlay أثناء البحث
+          if (isSearching)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(
+                minHeight: 4,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            ),
+        ],
       ),
-    );
-  }
-}
-
-// Animated Skeleton Widget
-class _AnimatedSkeleton extends StatefulWidget {
-  @override
-  State<_AnimatedSkeleton> createState() => _AnimatedSkeletonState();
-}
-
-class _AnimatedSkeletonState extends State<_AnimatedSkeleton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Color?> _colorAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(seconds: 1));
-    _colorAnimation =
-        ColorTween(begin: Colors.grey.shade300, end: Colors.grey.shade100)
-            .animate(_controller);
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _controller.reverse();
-      } else if (status == AnimationStatus.dismissed) {
-        _controller.forward();
-      }
-    });
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _colorAnimation,
-      builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
-            color: _colorAnimation.value,
-            borderRadius: BorderRadius.circular(12),
-          ),
-        );
-      },
     );
   }
 }
