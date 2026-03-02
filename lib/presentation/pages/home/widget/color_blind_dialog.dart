@@ -9,7 +9,7 @@ class ColorBlindDialog extends StatelessWidget {
     required this.colors,
   });
 
-  // محاكاة Protanopia (قصور الأحمر)
+  // simulate Protanopia 
   Color simulateProtanopia(Color color) {
     int r = (color.red * 0.567 + color.green * 0.433).round().clamp(0, 255);
     int g = (color.red * 0.558 + color.green * 0.442).round().clamp(0, 255);
@@ -17,7 +17,7 @@ class ColorBlindDialog extends StatelessWidget {
     return Color.fromARGB(255, r, g, b);
   }
 
-// محاكاة Deuteranopia (قصور الأخضر)
+// simulate Deuteranopia
   Color simulateDeuteranopia(Color color) {
     int r = (color.red * 0.625 + color.green * 0.375).round().clamp(0, 255);
     int g = (color.red * 0.7 + color.green * 0.3).round().clamp(0, 255);
@@ -25,7 +25,7 @@ class ColorBlindDialog extends StatelessWidget {
     return Color.fromARGB(255, r, g, b);
   }
 
-// محاكاة Tritanopia (قصور الأزرق)
+// simulate Tritanopia 
   Color simulateTritanopia(Color color) {
     int r = (color.red * 0.95 + color.blue * 0.05).round().clamp(0, 255);
     int g = (color.green * 0.433 + color.red * 0.567).round().clamp(0, 255);
@@ -46,7 +46,6 @@ class ColorBlindDialog extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ✅ المربع اللي فيه الألوان الأصلية
               Container(
                 height: 40,
                 margin: const EdgeInsets.only(bottom: 8),

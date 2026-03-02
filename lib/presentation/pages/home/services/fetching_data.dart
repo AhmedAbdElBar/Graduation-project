@@ -2,9 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-
-
-/// 🔹 جلب Palette من API colormind
+/// fetch palettes API colormind
 Future<List<List<Color>>> fetchPalettesFromApi(int count) async {
   List<List<Color>> fetchedPalettes = [];
 

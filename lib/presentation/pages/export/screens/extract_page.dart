@@ -17,10 +17,12 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
   File? imageFile;
   List<Color> extractedColors = [];
   List<Color> paletteColors = [];
+  List<Color> selectedColors = [];
   bool isLoading = false;
-
-  //  IP الكمبيوتر المحلي
-  final String apiUrl = "http://192.168.1.10:5000/colors";
+  //===============================
+  // IP address of local server
+  //===============================
+  final String apiUrl = "http://192.168.1.15:5000/image/extract-colors";
 
   Future pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -44,27 +46,24 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
     try {
       var request = http.MultipartRequest("POST", Uri.parse(apiUrl));
 
-      // إضافة الملف داخل الـ multipart request
       request.files.add(
         await http.MultipartFile.fromPath(
-          "file", // ← لازم يكون نفس اسم البارامتر في Flask
+          "file",
           path,
         ),
       );
 
-      // ابعت الريكوست
       var streamedResponse = await request.send();
 
-      // حوّل الـ stream إلى Response عادية
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List colors = data["top_colors"] ?? [];
-
+        final List colors = data["colors"] ?? [];
         setState(() {
           extractedColors = colors
-              .map((hex) => Color(int.parse("0xFF${hex.substring(1)}")))
+              .map((colorObj) =>
+                  Color(int.parse("0xFF${colorObj["hex"].substring(1)}")))
               .toList();
         });
       } else {
@@ -136,9 +135,7 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                   ),
                   const SizedBox(height: 40),
 
-                  // ==============================
-                  //      UPLOAD BUTTON
-                  // ==============================
+                  // UPLOAD BUTTON
                   Center(
                     child: GestureDetector(
                       onTap: pickImage,
@@ -174,9 +171,7 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                   ),
                   const SizedBox(height: 30),
 
-                  // ==============================
-                  //      IMAGE CONTAINER
-                  // ==============================
+                  // IMAGE CONTAINER
                   if (imageFile != null)
                     Stack(
                       children: [
@@ -227,9 +222,7 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
 
                   const SizedBox(height: 30),
 
-                  // ==============================
-                  //      PROGRESS INDICATOR
-                  // ==============================
+                  // PROGRESS INDICATOR
                   if (isLoading)
                     const CircularProgressIndicator(
                       color: Colors.white,
@@ -237,9 +230,7 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
 
                   const SizedBox(height: 20),
 
-                  // ==============================
-                  //      EXTRACTED COLORS
-                  // ==============================
+                  // EXTRACTED COLORS
                   if (extractedColors.isNotEmpty)
                     Column(
                       children: [
@@ -250,72 +241,110 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
                             String hexCode =
                                 '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
 
-                            // حساب لون النص بناءً على سطوع اللون
                             Color textColor = (0.299 * color.red +
                                         0.587 * color.green +
                                         0.114 * color.blue) >
                                     186
                                 ? Colors.black
                                 : Colors.white;
-
-                            return Container(
-                              width:
-                                  (MediaQuery.of(context).size.width - 60) / 2,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 5,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      hexCode,
-                                      style: TextStyle(
-                                        color: textColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
+                            bool isSelected = selectedColors.contains(color);
+                            return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    if (isSelected) {
+                                      selectedColors.remove(color);
+                                    } else {
+                                      if (selectedColors.length < 5) {
+                                        selectedColors.add(color);
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                "You can select only 5 colors"),
+                                            duration: Duration(seconds: 1),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  width:
+                                      (MediaQuery.of(context).size.width - 60) /
+                                          2,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: color, // ← مهم جدًا
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.transparent,
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 5,
+                                        offset: const Offset(0, 3),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      Clipboard.setData(
-                                          ClipboardData(text: hexCode));
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                              "Copied $hexCode to clipboard"),
-                                          duration: const Duration(seconds: 1),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          hexCode,
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
                                         ),
-                                      );
-                                    },
-                                    child: Icon(
-                                      Icons.copy,
-                                      color: textColor,
-                                      size: 20,
-                                    ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          Clipboard.setData(
+                                              ClipboardData(text: hexCode));
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  "Copied $hexCode to clipboard"),
+                                              duration:
+                                                  const Duration(seconds: 1),
+                                            ),
+                                          );
+                                        },
+                                        child: Icon(
+                                          Icons.copy,
+                                          color: textColor,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            );
+                                ));
                           }).toList(),
                         ),
                         const SizedBox(height: 30),
                         GestureDetector(
                           onTap: () {
+                            if (selectedColors.length != 5) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content:
+                                      Text("Please select exactly 5 colors"),
+                                ),
+                              );
+                              return;
+                            }
+
                             setState(() {
-                              paletteColors = List.from(extractedColors);
+                              paletteColors = List.from(selectedColors);
                             });
                           },
                           child: Container(

@@ -57,7 +57,7 @@ class _AuthScreenState extends State<AuthScreen>
       backgroundColor: ColorValueManager.vWhiteColor,
       body: Stack(
         children: [
-          // الخلفية
+          ///background image
           SizedBox(
             width: double.infinity,
             height: double.infinity,
@@ -66,6 +66,8 @@ class _AuthScreenState extends State<AuthScreen>
               fit: BoxFit.cover,
             ),
           ),
+
+          ///glassmorphism container
           Padding(
             padding: PaddingValueManager.eAll30,
             child: Center(
@@ -75,7 +77,7 @@ class _AuthScreenState extends State<AuthScreen>
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                     child: SlideTransition(
-                      position: _slideAnimation, // هنا الانيميشن
+                      position: _slideAnimation,
                       child: Container(
                         padding: PaddingValueManager.eAll30,
                         height: HeightValueManager.vH452,
@@ -91,7 +93,7 @@ class _AuthScreenState extends State<AuthScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // الزرين
+                            //switch button
                             Padding(
                               padding: PaddingValueManager.eAll15,
                               child: Container(
@@ -175,7 +177,7 @@ class _AuthScreenState extends State<AuthScreen>
                             ),
 
                             const SizedBox(height: HeightValueManager.vH20),
-                            // الفورم المتحرك
+                            // Forms
                             Expanded(
                               child: AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),

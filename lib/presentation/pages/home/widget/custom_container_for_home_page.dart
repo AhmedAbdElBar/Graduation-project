@@ -45,7 +45,7 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
 
     _controller.forward(from: 0);
 
-    _checkIfFavorite(); // ✅ تحقق من المفضلات عند البداية
+    _checkIfFavorite(); 
   }
 
   Future<void> _checkIfFavorite() async {
@@ -200,7 +200,7 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
                         }).toList();
 
                         if (favorite) {
-                          // إضافة إلى المفضلات
+                          // add to favorites
                           await favRef.add({
                             'colors': colorCodes,
                             'createdAt': FieldValue.serverTimestamp(),
@@ -211,7 +211,7 @@ class _CustomContainerForHomePageState extends State<CustomContainerForHomePage>
                                 content: Text('Added to favorites!')),
                           );
                         } else {
-                          // حذف من المفضلات
+                          // remove from favorites
                           final existing = await favRef
                               .where('colors', isEqualTo: colorCodes)
                               .get();

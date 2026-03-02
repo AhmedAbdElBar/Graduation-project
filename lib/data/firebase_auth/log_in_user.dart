@@ -9,7 +9,7 @@ class AuthService {
   }) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
-      return null; // null يعني نجح
+      return null; 
     } on FirebaseAuthException catch (e) {
       switch (e.code) {
         case 'user-not-found':

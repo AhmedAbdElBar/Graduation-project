@@ -9,23 +9,19 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // بنستخدم StreamBuilder عشان يسمع دايمًا لحالة تسجيل الدخول
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // لسه بيشوف المستخدم (شاشة تحميل بسيطة)
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // المستخدم مسجل دخول ✅
         if (snapshot.hasData) {
           return const HomeScreen();
         }
 
-        // المستخدم مش مسجل ❌
         return const AuthScreen();
       },
     );

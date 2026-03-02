@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:login_page/presentation/pages/export/screens/extract_page.dart';
 import 'package:login_page/presentation/pages/favorites_page/favorites_page.dart';
+import 'package:login_page/presentation/pages/home/screen/pages/contrast_cheack/check_contrast.dart';
 import 'package:login_page/presentation/pages/home/screen/pages/home_page/home_page.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const HomePage(),
     const ExtractColorsPage(),
     const FavoritesPage(),
+    const ContrastCheckerScreen(),
   ];
   void _onItemTapped(int index) {
     setState(() {
@@ -37,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color:
-              // ignore: deprecated_member_use
               isSelected ? Colors.white.withOpacity(0.3) : Colors.transparent,
           borderRadius: BorderRadius.circular(15),
         ),
@@ -49,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   0 => Colors.lightBlue,
                   1 => Colors.yellow,
                   2 => Colors.red,
+                  3 => Colors.green,
                   _ => Colors.white,
                 }
               : Colors.white,
@@ -83,6 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _navItem(Icons.home, 0),
                   _navItem(Icons.add_box, 1),
                   _navItem(Icons.favorite, 2),
+                  _navItem(Icons.color_lens, 3),
                 ],
               ),
             ),

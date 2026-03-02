@@ -3,8 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // تسجيل دخول بإيميل وباسورد
+  // Login
   Future<UserCredential> signInWithEmailAndPassword({
     required String email,
     required String password,
@@ -15,7 +14,7 @@ class AuthService {
     );
   }
 
-  // إنشاء مستخدم جديد
+  // Register
   Future<UserCredential> createUserWithEmailAndPassword({
     required String email,
     required String password,
@@ -26,16 +25,11 @@ class AuthService {
     );
   }
 
-  // إعادة تعيين كلمة المرور
+  // reset password
   Future<void> sendPasswordResetEmail({required String email}) async {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
-  // تسجيل الخروج
-  Future<void> signOut() async {
-    await _auth.signOut();
-  }
-
-  // Stream لمتابعة حالة الدخول
+  // Auth state changes
   Stream<User?> authStateChanges() => _auth.authStateChanges();
 }

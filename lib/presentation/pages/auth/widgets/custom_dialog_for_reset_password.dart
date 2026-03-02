@@ -20,7 +20,7 @@ class _ResetPasswordDialogState extends State<ResetPasswordDialog> {
       await FirebaseAuth.instance
           .sendPasswordResetEmail(email: emailController.text.trim());
 
-      if (!mounted) return; // ✅ تأكد أن الـ widget لسه في الشجرة
+      if (!mounted) return; 
 
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -29,7 +29,7 @@ class _ResetPasswordDialogState extends State<ResetPasswordDialog> {
         ),
       );
     } on FirebaseAuthException catch (e) {
-      if (!mounted) return; // ✅ مهم جداً قبل استخدام context هنا كمان
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Try again")),
       );

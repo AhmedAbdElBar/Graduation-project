@@ -8,7 +8,6 @@ class AuthServiceForRegister {
     required String password,
     required String confirmPassword,
   }) async {
-    // 🔹 تحقق إن الباسوردين متطابقين
     if (password != confirmPassword) {
       return 'Passwords do not match.';
     } else {
@@ -17,7 +16,7 @@ class AuthServiceForRegister {
           email: email,
           password: password,
         );
-        return null; // ✅ null يعني العملية نجحت
+        return null;
       } on FirebaseAuthException catch (e) {
         switch (e.code) {
           case 'email-already-in-use':

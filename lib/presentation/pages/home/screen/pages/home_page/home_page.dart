@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:login_page/presentation/pages/home/services/search.dart';
-import 'package:login_page/presentation/pages/home/widget/skeleton_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:login_page/presentation/core/resources/color_value_manager.dart';
 import 'package:login_page/presentation/pages/auth/services/log_out.dart';
 import 'package:login_page/presentation/pages/home/services/fetching_data.dart';
 import 'package:login_page/presentation/pages/home/widget/custom_container_for_home_page.dart';
+
+import '../../../widget/skeleton_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -51,37 +52,31 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  /// 🔹 Pull to refresh
   Future<void> _refresh() async {
     setState(() {
       isLoading = true;
     });
 
-    // جلب بيانات جديدة من API
     final palettes = await fetchPalettesFromApi(10);
 
-    // تحديث القوائم
     myPalettes = palettes;
     filteredPalettes = List.from(myPalettes);
 
-    // حفظها في SharedPreferences
     await _savePalettesToCache();
 
-    // زيادة refreshId لتحديث GridView
     setState(() {
       isLoading = false;
       refreshId++;
     });
   }
 
-  /// 🔹 Load from SharedPreferences first, otherwise fetch from API
+  ///  Load from SharedPreferences or API
   Future<void> _loadPalettesFromCacheOrApi() async {
     setState(() => isLoading = true);
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString('my_palettes');
 
     if (cached != null) {
-      // تحويل JSON لـ List<Color>
       List<dynamic> decoded = jsonDecode(cached);
       myPalettes = decoded.map<List<Color>>((palette) {
         return (palette as List)
@@ -95,7 +90,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  /// 🔹 Fetch from API
+  ///  Fetch from API
   Future<void> _fetchInitialPalettes() async {
     final palettes = await fetchPalettesFromApi(10);
     myPalettes = palettes;
@@ -104,7 +99,7 @@ class _HomePageState extends State<HomePage> {
     setState(() => isLoading = false);
   }
 
-  /// 🔹 Save to SharedPreferences
+  ///  Save to SharedPreferences
   Future<void> _savePalettesToCache() async {
     final prefs = await SharedPreferences.getInstance();
     List<List<int>> toSave = myPalettes
@@ -113,7 +108,7 @@ class _HomePageState extends State<HomePage> {
     await prefs.setString('my_palettes', jsonEncode(toSave));
   }
 
-  /// 🔹 Filter results
+  ///  Filter results
   Future<void> _filterResults() async {
     String query = _searchController.text.toLowerCase();
     if (query.isEmpty) {
@@ -125,7 +120,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     setState(() {
-      isSearching = true; // تفعيل ال loading
+      isSearching = true;
     });
 
     int desiredCount = 10;
@@ -136,10 +131,8 @@ class _HomePageState extends State<HomePage> {
     while (matches.length < desiredCount && attempts < maxAttempts) {
       attempts++;
 
-      // جلب دفعة جديدة من API (مثلاً 5 في كل مرة)
       final fetchedPalettes = await fetchPalettesFromApi(5);
 
-      // تصفية النتائج حسب اللون
       List<List<Color>> newMatches = fetchedPalettes.where((palette) {
         return palette.any((color) {
           String name = approxColorName(color);
@@ -150,28 +143,24 @@ class _HomePageState extends State<HomePage> {
       matches.addAll(newMatches);
     }
 
-    // تحديث البالتات
     filteredPalettes = matches.take(desiredCount).toList();
 
-    // دمج النتائج الجديدة مع myPalettes وحفظها
     myPalettes.addAll(filteredPalettes);
     await _savePalettesToCache();
 
     setState(() {
-      isSearching = false; // انتهاء البحث
+      isSearching = false;
     });
   }
 
-  /// 🔹 Load more (Pagination)
+  ///  Load more palettes
   Future<void> _loadMore() async {
     setState(() => isLoadingMore = true);
 
     final newPalettes = await fetchPalettesFromApi(10);
 
-    // أضفها لكل البالتات
     allPalettes.addAll(newPalettes);
 
-    // إذا المستخدم عامل بحث
     if (_searchController.text.isNotEmpty) {
       String query = _searchController.text.toLowerCase();
       filteredPalettes = allPalettes.where((palette) {
@@ -181,7 +170,6 @@ class _HomePageState extends State<HomePage> {
         });
       }).toList();
     } else {
-      // لو مفيش بحث
       filteredPalettes = List.from(allPalettes);
     }
 
@@ -259,9 +247,7 @@ class _HomePageState extends State<HomePage> {
                 key: ValueKey(refreshId),
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                itemCount: isLoading
-                    ? 6
-                    : filteredPalettes.length + 1, // عدد skeletons
+                itemCount: isLoading ? 6 : filteredPalettes.length + 1,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
@@ -270,7 +256,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 itemBuilder: (context, index) {
                   if (isLoading) {
-                    return const PaletteSkeleton(); // عرض skeleton
+                    return const PaletteSkeleton();
                   } else if (index < filteredPalettes.length) {
                     return CustomContainerForHomePage(
                       index: index,
@@ -290,7 +276,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          // Loading overlay أثناء البحث
           if (isSearching)
             Positioned(
               top: 0,
