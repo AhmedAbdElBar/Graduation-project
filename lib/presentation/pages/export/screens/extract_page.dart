@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
+import 'package:login_page/presentation/core/resources/ip_address.dart';
 import 'package:login_page/presentation/pages/home/widget/custom_container_for_home_page.dart'; // ← مهم للـ Clipboard
 
 class ExtractColorsPage extends StatefulWidget {
@@ -19,10 +20,6 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
   List<Color> paletteColors = [];
   List<Color> selectedColors = [];
   bool isLoading = false;
-  //===============================
-  // IP address of local server
-  //===============================
-  final String apiUrl = "http://192.168.1.15:5000/image/extract-colors";
 
   Future pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -38,7 +35,14 @@ class _ExtractColorsPageState extends State<ExtractColorsPage> {
     }
   }
 
+  // Upload image to server and extract colors
+  //===============================
+  // IP address of local server
+  //===============================
+  String? ip = IpAddress.ipAddress;
+
   Future extractColors(String path) async {
+    final String apiUrl = "http://$ip:5000/image/extract-colors";
     setState(() {
       isLoading = true;
     });

@@ -1,14 +1,47 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:login_page/presentation/pages/home/services/search.dart';
+import 'package:http/http.dart' as http;
+import 'package:login_page/presentation/core/resources/ip_address.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:login_page/presentation/core/resources/color_value_manager.dart';
 import 'package:login_page/presentation/pages/auth/services/log_out.dart';
 import 'package:login_page/presentation/pages/home/services/fetching_data.dart';
 import 'package:login_page/presentation/pages/home/widget/custom_container_for_home_page.dart';
-
 import '../../../widget/skeleton_widget.dart';
+
+// تحويل Hex → Color
+Color hexToColor(String hexString) {
+  final buffer = StringBuffer();
+  if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
+  buffer.write(hexString.replaceFirst('#', ''));
+  return Color(int.parse(buffer.toString(), radix: 16));
+}
+
+// API search
+Future<List<List<Color>>> fetchPalettesByColor(String color) async {
+  String? ip = IpAddress.ipAddress;
+  final response = await http.post(
+    Uri.parse("http://$ip:5000/palettes/by-color"),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({'color': color}),
+  );
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+
+    List<dynamic> palettesJson = data['palettes'];
+
+    return palettesJson.map<List<Color>>((palette) {
+      List<dynamic> colorsList = palette['colors'];
+      return colorsList
+          .map<Color>((hex) => hexToColor(hex.toString()))
+          .toList();
+    }).toList();
+  } else {
+    throw Exception("Failed to fetch palettes");
+  }
+}
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,7 +64,6 @@ class _HomePageState extends State<HomePage> {
   bool isLoadingMore = false;
   bool isSearching = false;
   int refreshId = 0;
-  Timer? _debounce;
 
   @override
   void initState() {
@@ -41,21 +73,43 @@ class _HomePageState extends State<HomePage> {
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent &&
-          !isLoadingMore) {
+          !isLoadingMore &&
+          _searchController.text.isEmpty) {
         _loadMore();
       }
     });
-
-    _searchController.addListener(() {
-      if (_debounce?.isActive ?? false) _debounce!.cancel();
-      _debounce = Timer(const Duration(milliseconds: 600), _filterResults);
-    });
   }
 
+  /// SEARCH
+  Future<void> _filterResults() async {
+    String query = _searchController.text.trim();
+
+    if (query.isEmpty) {
+      setState(() {
+        filteredPalettes = List.from(myPalettes);
+        isSearching = false;
+      });
+      return;
+    }
+
+    setState(() => isSearching = true);
+
+    try {
+      final palettes = await fetchPalettesByColor(query);
+
+      setState(() {
+        filteredPalettes = palettes;
+      });
+    } catch (e) {
+      debugPrint("Search Error: $e");
+    } finally {
+      setState(() => isSearching = false);
+    }
+  }
+
+  /// Refresh
   Future<void> _refresh() async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     final palettes = await fetchPalettesFromApi(10);
 
@@ -70,7 +124,7 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  ///  Load from SharedPreferences or API
+  /// Load cache
   Future<void> _loadPalettesFromCacheOrApi() async {
     setState(() => isLoading = true);
     final prefs = await SharedPreferences.getInstance();
@@ -83,6 +137,7 @@ class _HomePageState extends State<HomePage> {
             .map<Color>((colorValue) => Color(colorValue))
             .toList();
       }).toList();
+
       filteredPalettes = List.from(myPalettes);
       setState(() => isLoading = false);
     } else {
@@ -90,7 +145,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  ///  Fetch from API
+  /// First fetch
   Future<void> _fetchInitialPalettes() async {
     final palettes = await fetchPalettesFromApi(10);
     myPalettes = palettes;
@@ -99,7 +154,7 @@ class _HomePageState extends State<HomePage> {
     setState(() => isLoading = false);
   }
 
-  ///  Save to SharedPreferences
+  /// Save cache
   Future<void> _savePalettesToCache() async {
     final prefs = await SharedPreferences.getInstance();
     List<List<int>> toSave = myPalettes
@@ -108,72 +163,17 @@ class _HomePageState extends State<HomePage> {
     await prefs.setString('my_palettes', jsonEncode(toSave));
   }
 
-  ///  Filter results
-  Future<void> _filterResults() async {
-    String query = _searchController.text.toLowerCase();
-    if (query.isEmpty) {
-      setState(() {
-        filteredPalettes = List.from(myPalettes);
-        isSearching = false;
-      });
-      return;
-    }
-
-    setState(() {
-      isSearching = true;
-    });
-
-    int desiredCount = 10;
-    int attempts = 0;
-    int maxAttempts = 50;
-    List<List<Color>> matches = [];
-
-    while (matches.length < desiredCount && attempts < maxAttempts) {
-      attempts++;
-
-      final fetchedPalettes = await fetchPalettesFromApi(5);
-
-      List<List<Color>> newMatches = fetchedPalettes.where((palette) {
-        return palette.any((color) {
-          String name = approxColorName(color);
-          return name.contains(query);
-        });
-      }).toList();
-
-      matches.addAll(newMatches);
-    }
-
-    filteredPalettes = matches.take(desiredCount).toList();
-
-    myPalettes.addAll(filteredPalettes);
-    await _savePalettesToCache();
-
-    setState(() {
-      isSearching = false;
-    });
-  }
-
-  ///  Load more palettes
+  /// Load more
   Future<void> _loadMore() async {
     setState(() => isLoadingMore = true);
 
     final newPalettes = await fetchPalettesFromApi(10);
 
     allPalettes.addAll(newPalettes);
-
-    if (_searchController.text.isNotEmpty) {
-      String query = _searchController.text.toLowerCase();
-      filteredPalettes = allPalettes.where((palette) {
-        return palette.any((color) {
-          String name = approxColorName(color);
-          return name.contains(query);
-        });
-      }).toList();
-    } else {
-      filteredPalettes = List.from(allPalettes);
-    }
+    filteredPalettes.addAll(newPalettes);
 
     await _savePalettesToCache();
+
     setState(() => isLoadingMore = false);
   }
 
@@ -199,16 +199,26 @@ class _HomePageState extends State<HomePage> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search color (e.g. red, blue)',
+                  hintText: 'Search (e.g. #FF0000 or 255,0,0)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(100),
-                    borderSide:
-                        BorderSide(color: Colors.grey.shade300, width: 1),
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-                  suffixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                  suffixIcon: isSearching
+                      ? const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : const Icon(Icons.search),
                 ),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) async {
+                  await _filterResults();
+                },
               ),
             ),
             IconButton(
@@ -231,7 +241,6 @@ class _HomePageState extends State<HomePage> {
                 if (confirm == true) await logout(context);
               },
               icon: const Icon(Icons.logout),
-              tooltip: 'Log out',
             ),
           ],
         ),
@@ -263,29 +272,65 @@ class _HomePageState extends State<HomePage> {
                       colors: filteredPalettes[index].take(5).toList(),
                     );
                   } else {
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Center(
-                        child: isLoadingMore
-                            ? const CircularProgressIndicator()
-                            : const SizedBox.shrink(),
-                      ),
-                    );
+                    // Show Load More button if searching, else loader for scroll
+                    if (_searchController.text.isNotEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Center(
+                          child: ElevatedButton(
+                            onPressed: isLoadingMore
+                                ? null
+                                : () async {
+                                    setState(() => isLoadingMore = true);
+                                    try {
+                                      final newPalettes =
+                                          await fetchPalettesByColor(
+                                              _searchController.text);
+                                      setState(() {
+                                        filteredPalettes.addAll(newPalettes);
+                                      });
+                                    } catch (e) {
+                                      debugPrint("Load more search error: $e");
+                                    } finally {
+                                      setState(() => isLoadingMore = false);
+                                    }
+                                  },
+                            child: isLoadingMore
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('Load More'),
+                          ),
+                        ),
+                      );
+                    } else {
+                      return Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Center(
+                          child: isLoadingMore
+                              ? const CircularProgressIndicator()
+                              : const SizedBox.shrink(),
+                        ),
+                      );
+                    }
                   }
                 },
               ),
             ),
           ),
+
+          // 🔥 loading bar فوق أثناء البحث
           if (isSearching)
-            Positioned(
+            const Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: LinearProgressIndicator(
-                minHeight: 4,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-              ),
+              child: LinearProgressIndicator(minHeight: 3),
             ),
         ],
       ),
