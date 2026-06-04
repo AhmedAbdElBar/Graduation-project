@@ -222,7 +222,7 @@ class _ContrastCheckerScreenState extends State<ContrastCheckerScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
               ),
               Text(
-                contrastRatio!.toStringAsFixed(2) + ":1",
+                "${contrastRatio!.toStringAsFixed(2)}:1",
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
