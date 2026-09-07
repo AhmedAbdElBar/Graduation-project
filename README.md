@@ -21,15 +21,24 @@ The project focuses on combining **modern UI/UX**, **color theory**, **accessibi
 | Splash | Log In | Sign Up |
 |--------|--------|---------|
 | <img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 32 05 PM (1)" src="https://github.com/user-attachments/assets/c8741485-344a-4b08-ae6d-d8b1df2ea2dc" />
-| ![Login](screenshots/login_screen.jpeg) | ![Sign Up](screenshots/signup_screen.jpeg) |
+| <img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 32 05 PM" src="https://github.com/user-attachments/assets/25847ba9-b338-43f8-b959-c5deb1880030" />
+| <img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 32 06 PM (1)" src="https://github.com/user-attachments/assets/4b6313fb-24a5-4991-893e-2f2fefc2a7f6" />
+|
 
 | Palette Gallery | Palette Detail | Color Blind Simulation |
 |------------------|----------------|--------------------------|
-| ![Home Palettes](screenshots/home_palettes.jpeg) | ![Palette Detail](screenshots/palette_detail.jpeg) | ![Color Blind Simulation](screenshots/colorblind_simulation.jpeg) |
+| <img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 32 06 PM (2)" src="https://github.com/user-attachments/assets/567c309b-05fe-4d95-b035-65607403a537" />
+ |<img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 32 04 PM (1)" src="https://github.com/user-attachments/assets/5dd94c80-53e9-4dac-b189-ecf91f1e4d62" />
+ | <img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 32 04 PM" src="https://github.com/user-attachments/assets/230258a9-4114-4eeb-9162-de4a8320e086" />
+|
 
 | Image Color Extraction | Favorites | WCAG Contrast Checker |
 |--------------------------|-----------|--------------------------|
-| ![Image Color Extraction](screenshots/image_color_extraction.jpeg) | ![Favorites](screenshots/favorites_screen.jpeg) | ![WCAG Contrast Checker](screenshots/wcag_contrast_checker.jpeg) |
+| <img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 32 06 PM" src="https://github.com/user-attachments/assets/494e0eec-9970-4760-8ef3-98e60351a62f" />
+ | <img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 32 06 PM (3)" src="https://github.com/user-attachments/assets/aacac110-2dd6-4c0f-96a7-fd7e4543be0a" />
+
+ | <img width="540" height="1200" alt="WhatsApp Image 2026-09-05 at 11 33 10 PM" src="https://github.com/user-attachments/assets/ae578d2d-6e42-4588-93e9-dfc7fed5b101" />
+ |
 
 ---
 
